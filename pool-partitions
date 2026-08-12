@@ -1,0 +1,98 @@
+#!/bin/sh
+PREREQ=""
+prereqs()
+{
+	echo "$PREREQ"
+}
+case $1 in
+prereqs)
+	prereqs
+	exit 0
+	;;
+esac
+
+. /scripts/functions
+
+POOL_NAME=pool
+
+CONFIG_DIR="/etc/pool-partitions.d"
+CONFIG_FILE=""
+
+if [ -f /sys/firmware/devicetree/base/compatible ]; then
+    compat_list=$(cat /sys/firmware/devicetree/base/compatible | tr '\0' ' ')
+    
+    for compat in $compat_list; do
+        if [ -f "$CONFIG_DIR/${compat}.conf" ]; then
+            CONFIG_FILE="$CONFIG_DIR/${compat}.conf"
+			# Found most specifically matching configuration
+            break 
+        fi
+    done
+fi
+
+if [ ! -f "$CONFIG_FILE" ]; then
+    panic "pool-partitions: no valid configuration file found in $CONFIG_DIR."
+fi
+
+# Read the configuration
+read -r POOL_CONFIG < "$CONFIG_FILE"
+DEVICE="${POOL_CONFIG%%:*}"
+PARTITIONS="${POOL_CONFIG#*:}"
+
+# Wait up to 5 seconds for the device to appear
+wait_timeout=50
+while [ ! -d "/sys/class/block/$DEVICE" ]; do
+    wait_timeout=$((wait_timeout - 1))
+    if [ "$wait_timeout" -le 0 ]; then
+        panic "pool-partitions: device '$DEVICE' did not appear in time."
+    fi
+    sleep 0.1
+done
+
+read -r DEVICE_MAJOR_MINOR < "/sys/class/block/$DEVICE/dev"
+
+# Ensure we have all of the specified partitions on the device
+found_all_partitions=true
+
+# Construct the dm-linear mapping at the same time
+table=""
+offset=0
+nl='
+'
+
+for partition in $PARTITIONS; do
+    partition_found=false
+    
+	for disk_partition_path in /sys/class/block/"$DEVICE"/"$DEVICE"*; do
+		[ -f "$disk_partition_path/partition" ] || continue
+		
+		if grep -qsE "^PARTNAME=${partition}$" "$disk_partition_path/uevent"; then
+			partition_found=true
+
+			# Add partition to table
+			read -r start < "$disk_partition_path/start"
+			read -r size < "$disk_partition_path/size"
+
+			table="$table$offset $size linear $DEVICE_MAJOR_MINOR $start$nl"
+			offset=$((offset + size))
+
+			break
+		fi
+	done
+
+    if [ "$partition_found" != true ]; then
+        log_failure_msg "pool-partitions: partition '$partition' NOT found on $DEVICE."
+        found_all_partitions=false
+		# Not breaking early as to possibly log other missing partitions
+    fi
+done
+
+if [ "$found_all_partitions" != true ]; then
+	panic "pool-partitions: one or more partitions were not found on $DEVICE, unable to create pool."
+fi
+
+echo "$table" | dmsetup create "$POOL_NAME" || {
+	panic "pool-partitions: could not create /dev/mapper/$POOL_NAME"
+}
+
+kpartx -a "/dev/mapper/$POOL_NAME" || panic "pool-partitions: could not map partitions"

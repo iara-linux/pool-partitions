@@ -1,0 +1,23 @@
+#!/bin/sh
+PREREQ=""
+prereqs()
+{
+	echo "$PREREQ"
+}
+case $1 in
+prereqs)
+	prereqs
+	exit 0
+	;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+
+CONFIG_DIR="/etc/pool-partitions.d"
+
+copy_exec /usr/sbin/dmsetup
+copy_exec /usr/sbin/kpartx
+
+manual_add_modules dm-mod
+
+cp -a "${CONFIG_DIR}/." "${DESTDIR}${CONFIG_DIR}/"

@@ -95,4 +95,10 @@ echo "$table" | dmsetup create "$POOL_NAME" || {
 	panic "pool-partitions: could not create /dev/mapper/$POOL_NAME"
 }
 
+# TODO: Only resize when cmdline has resize set
+parted -f -s "/dev/mapper/$POOL_NAME" resizepart "2" 100%
+
 kpartx -a "/dev/mapper/$POOL_NAME" || panic "pool-partitions: could not map partitions"
+
+# TODO: Only resize when cmdline has resize set
+resize2fs "/dev/mapper/${POOL_NAME}2"

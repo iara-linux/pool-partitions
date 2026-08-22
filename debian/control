@@ -18,5 +18,7 @@ Depends:
  kpartx,
  coreutils,
  grep,
+ parted,
+ resize2fs
 Description: Combines multiple partitions into a single pool.
  Intended for ex-Android devices, this combines multiple logical partitions into a single virtual partition that Linux can utilize.

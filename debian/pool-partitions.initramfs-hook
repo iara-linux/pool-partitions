@@ -19,6 +19,8 @@ copy_exec /usr/sbin/dmsetup
 copy_exec /usr/sbin/kpartx
 copy_exec /usr/bin/tr
 copy_exec /usr/bin/grep
+copy_exec /usr/sbin/parted
+copy_exec /usr/sbin/resize2fs
 
 manual_add_modules dm-mod
 

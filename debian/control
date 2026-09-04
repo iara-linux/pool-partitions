@@ -1,7 +1,7 @@
 Source: pool-partitions
 Section: admin
 Priority: optional
-Maintainer: Jack Matthews <jack@jackmatthe.ws>
+Maintainer: Iara Linux <admin@iaralinux.org>
 Rules-Requires-Root: no
 Build-Depends:
  debhelper-compat (= 13),

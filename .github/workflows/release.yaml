@@ -1,0 +1,43 @@
+name: Build and release deb
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  INCOMING_BUCKET: iara-linux-apt-incoming
+  RCLONE_CONFIG_R2_TYPE: s3
+  RCLONE_CONFIG_R2_PROVIDER: Cloudflare
+  RCLONE_CONFIG_R2_REGION: auto
+  RCLONE_CONFIG_R2_NO_CHECK_BUCKET: "true"
+  RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${{ secrets.R2_INCOMING_ACCESS_KEY_ID }}
+  RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_INCOMING_SECRET_ACCESS_KEY }}
+  RCLONE_CONFIG_R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential debhelper devscripts rclone
+          sudo apt-get build-dep -y .
+
+      - name: Build
+        run: dpkg-buildpackage -us -uc -b
+
+      - name: Upload to incoming packages bucket
+        run: rclone copy .. "r2:$INCOMING_BUCKET/" --include "*.deb"
+
+      - name: Trigger apt sync
+        run: |
+          curl -sSf -X POST \
+            -H "Authorization: Bearer ${{ secrets.APT_DISPATCH_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/iara-linux/apt-repo/dispatches \
+            -d '{"event_type":"apt-sync"}'

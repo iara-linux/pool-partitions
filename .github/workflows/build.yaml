@@ -29,11 +29,11 @@ jobs:
       - name: Build
         run: dpkg-buildpackage -us -uc -b
 
+      - name: Move built files
+        run: mkdir output && mv ../*.{deb,changes,buildinfo,dsc} output/
+
       - uses: actions/upload-artifact@v7
         with:
           name: debian-packages
-          path: |
-            ../*.deb
-            ../*.changes
-            ../*.dsc
+          path: output/*
           if-no-files-found: error

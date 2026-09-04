@@ -30,7 +30,7 @@ jobs:
         run: dpkg-buildpackage -us -uc -b
 
       - name: Move built files
-        run: mkdir output && mv ../*.{deb,changes,buildinfo,dsc} output/
+        run: mkdir output && mv ../*.deb ../*.buildinfo output/
 
       - uses: actions/upload-artifact@v7
         with:

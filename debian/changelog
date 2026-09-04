@@ -3,7 +3,7 @@ pool-partitions (0.5) unstable; urgency=medium
   * The actual initial release.
   * Includes configuration files for MT8163 hardware.
 
- -- Jack Matthews <jack@iaralinux.org> Fri, 04 Sep 2026 23:00:00 -0400
+ -- Jack Matthews <jack@iaralinux.org>  Fri, 04 Sep 2026 23:00:00 -0400
 
 pool-partitions (0.1) UNRELEASED; urgency=medium
 
